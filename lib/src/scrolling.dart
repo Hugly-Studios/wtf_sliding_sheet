@@ -21,9 +21,9 @@ class _SheetExtent {
 
   double get sheetHeight => childHeight + headerHeight + footerHeight;
 
-  double get additionalMinExtent => isAtMin ? 0.0 : 0.1;
+  double get additionalMinExtent => 0.0;
 
-  double get additionalMaxExtent => isAtMax ? 0.0 : 0.1;
+  double get additionalMaxExtent => 0.1;
 
   bool get isAtMax => currentExtent >= maxExtent;
 
@@ -281,9 +281,11 @@ class _SlidingSheetScrollPosition extends ScrollPositionWithSingleContext {
     // We need to provide some extra extent if we haven't yet reached the max or
     // min extents. Otherwise, a list with fewer children than the extent of
     // the available space will get stuck.
+    final adjustedMin = minScrollExtent - extent.additionalMinExtent;
+    final adjustedMax = maxScrollExtent + extent.additionalMaxExtent;
     return super.applyContentDimensions(
-      minScrollExtent - extent.additionalMinExtent,
-      maxScrollExtent + extent.additionalMaxExtent,
+      adjustedMin,
+      math.max(adjustedMin, adjustedMax),
     );
   }
 
@@ -461,7 +463,9 @@ class _SlidingSheetScrollPosition extends ScrollPositionWithSingleContext {
       position: currentExtent,
       velocity: velocity,
       friction: friction,
-      tolerance: physics.toleranceFor(scrollController.position),
+      tolerance: scrollController.hasClients
+          ? physics.toleranceFor(scrollController.position)
+          : Tolerance.defaultTolerance,
     );
 
     final ballisticController = AnimationController.unbounded(
@@ -488,9 +492,11 @@ class _SlidingSheetScrollPosition extends ScrollPositionWithSingleContext {
         // Make sure we pass along enough velocity to keep scrolling - otherwise
         // we just "bounce" off the top making it look like the list doesn't
         // have more to scroll.
+        final tolerance = scrollController.hasClients
+            ? physics.toleranceFor(scrollController.position)
+            : Tolerance.defaultTolerance;
         velocity = ballisticController.velocity +
-            (physics.toleranceFor(scrollController.position).velocity *
-                ballisticController.velocity.sign);
+            (tolerance.velocity * ballisticController.velocity.sign);
         super.goBallistic(shouldMakeSheetNonDismissable ? 0.0 : velocity);
         ballisticController.stop();
 

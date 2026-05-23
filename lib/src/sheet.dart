@@ -488,6 +488,8 @@ class _SlidingSheetState extends State<SlidingSheet>
   SheetController? sheetController;
   late _SlidingSheetScrollController controller;
 
+  bool _measureScheduled = false;
+
   bool get isCustom => widget.customBuilder != null;
 
   // Whether the sheet has drawn its first frame.
@@ -655,7 +657,12 @@ class _SlidingSheetState extends State<SlidingSheet>
 
   // Measure the height of all sheet components.
   void _measure() {
+    if (_measureScheduled) return;
+    _measureScheduled = true;
     postFrame(() {
+      _measureScheduled = false;
+      if (!mounted) return;
+
       final child = childKey.currentContext?.findRenderObject() as RenderBox?;
       final header = headerKey.currentContext?.findRenderObject() as RenderBox?;
       final footer = footerKey.currentContext?.findRenderObject() as RenderBox?;
@@ -677,10 +684,11 @@ class _SlidingSheetState extends State<SlidingSheet>
 
       isLaidOut = true;
 
-      if (mounted &&
-          (childHeight != prevChildHeight ||
-              headerHeight != prevHeaderHeight ||
-              footerHeight != prevFooterHeight)) {
+      final childChanged = (childHeight - prevChildHeight).abs() > 0.5;
+      final headerChanged = (headerHeight - prevHeaderHeight).abs() > 0.5;
+      final footerChanged = (footerHeight - prevFooterHeight).abs() > 0.5;
+
+      if (childChanged || headerChanged || footerChanged) {
         _updateSnappingsAndExtent(previousMaxExtent: previousMaxExtent);
         setState(() {});
       }
