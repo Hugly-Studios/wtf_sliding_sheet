@@ -94,7 +94,7 @@ Future<T?> showSlidingBottomSheet<T>(
                 child: sheet,
               );
             }
-            return sheet;
+            return Theme(data: theme, child: sheet);
           },
         );
       },
